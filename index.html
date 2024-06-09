@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" no-cache>
+  <meta http-equiv="Expires" content="0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Three.js F1 Game</title>
+  <style>
+    body { margin: 0; }
+    canvas { display: block; }
+    .hud {
+      position: absolute;
+      border-radius: 10% / 50%;
+      bottom: 5%;
+      left: 35%;
+      color: white;
+      background: rgba(0,0,0,0.5);
+      font-family: Arial, sans-serif;
+      font-size: 20px;
+      width: 30%;
+      height: 15%;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      font-family: 'Orbitron', sans-serif;
+      align-items: center;
+      justify-content: center;
+    }
+    .rpm-container {
+      position: relative;
+      width: 80%;
+      margin-bottom: 10px;
+    }
+    .rpm-label {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      color: white;
+      font-size: 12px;
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 10%;
+      background: none;
+      outline: none;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+      pointer-events: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      width: 0;
+      height: 0;
+    }
+    .info {
+      display: flex;
+      justify-content: space-between;
+      width: 80%;
+    }
+  </style>
+</head>
+<body>
+  <div class="hud">
+    <div class="rpm-container">
+      <div id="rpm" class="rpm-label"> 0</div>
+      <input type="range" min="0" max="100" value="0" id="rpmSlider" disabled>
+
+    </div>
+    <div class="info">
+      <div id="speed">0 km/h</div>
+      <div id="gear">Gear: 1</div>
+    </div>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="Scripts/Car.js" type="module"></script>
+  <script src="Scripts/Controls.js" type="module"></script>
+  <script src="Scripts/Physics.js" type="module"></script>
+  <script src="Scripts/Engine.js" type="module"></script>
+  <script src="Scripts/Game.js" type="module"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const rpmSlider = document.getElementById('rpmSlider');
+      const rpmDisplay = document.getElementById('rpm');
+
+      // Funzione per aggiornare il valore dello slider
+      function setRpmValue(value) {
+        rpmSlider.value = value;
+        if (value <= 40) {
+          rpmSlider.style.background = `linear-gradient(to right, green ${value}%, black ${value}%)`;
+        } else if (value <= 80) {
+          rpmSlider.style.background = `linear-gradient(to right, green 40%, yellow ${value}%, black ${value}%)`;
+        } else {
+          rpmSlider.style.background = `linear-gradient(to right, green 40%, yellow 80%, red ${value}%, black ${value}%)`;
+        }
+      }
+
+      // Esempio di impostazione del valore dallo script
+      setRpmValue(50);  // Imposta il valore a 50 per esempio
+
+      // Espone la funzione globalmente per poter essere chiamata da altri script
+      window.setRpmValue = setRpmValue;
+    });
+  </script>
+</body>
+</html>
