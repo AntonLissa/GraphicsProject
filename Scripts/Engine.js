@@ -8,7 +8,7 @@ class Engine {
 
     // Metodo per ottenere la coppia dati gli RPM con diminuzione oltre l'80% dei max RPM
     getTorque(speed, gearRatio, finalDriveRatio, diameter) {
-        //console.log('data', speed, gear, gearRatio, finalDriveRatio, diameter)
+        //.log('data', speed, gear, gearRatio, finalDriveRatio, diameter)
         const rpm = this.getRpmFromSpeed(speed, gearRatio, finalDriveRatio, diameter); // real rpm
 
         if(speed > 0){
@@ -20,7 +20,10 @@ class Engine {
 
         if (rpm < this.minRpm) 
             return minTorque;
-        if (rpm >= this.maxRpm) return 0;
+
+        if (rpm >= this.maxRpm){
+            return -(rpm-this.maxRpm)/4; // freno motore?
+        }
     
         // Calcola l'80% dei max RPM
         const eightyPercentMaxRpm = 0.8 * this.maxRpm; 
@@ -60,9 +63,9 @@ class Engine {
         }
         const rpm = Math.round((speedInMetersPerMinute * gearRatio * finalDriveRatio) / wheelCircumference);
 
-        if (rpm > this.maxRpm) {
+        /*if (rpm > this.maxRpm) {
             return this.maxRpm;
-        }
+        }*/
         //console.log('rpm', rpm, speedInMetersPerMinute, finalDriveRatio, wheelCircumference);
             // Verifichiamo se gli RPM sono un numero valido
         return Math.max(this.minRpm, rpm);

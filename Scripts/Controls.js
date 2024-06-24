@@ -19,34 +19,26 @@ class Controls {
 
   update() {
       if (this.car.mesh) {
-        if (this.keysPressed['w']) {
-            this.car.accelerate(1, 1);
-            this.car.engine.increaseRpm(200); // Aumenta gli RPM quando si accelera
-        } else if (this.keysPressed[' ']) {
+       if (this.keysPressed['s']) {
             this.car.brake();
         } else {
-            this.car.accelerate(Math.sign(this.car.speed), 0); // 0 = no power from engine
-            this.car.engine.decreaseRpm(200); // Riduci gradualmente gli RPM quando non si accelera
+            this.car.accelerate(Math.sign(this.car.speed.length()), 1); // 0 = no power from engine
+            //this.car.engine.decreaseRpm(200); // Riduci gradualmente gli RPM quando non si accelera
         }
           
           if (this.keysPressed['a']) {
-            this.car.setSteeringCoefficient(0.5); // Sterzare a metà del massimo angolo
-
-            //this.car.mesh.rotation.y += this.car.rotationSpeed;
+            this.car.steer(1, 1);
 
           }
           
           if (this.keysPressed['d']){
-
-            this.car.setSteeringCoefficient(-0.5); 
-              //this.car.mesh.rotation.y += this.car.rotationSpeed;
+              this.car.steer(1, -1);
           }
-              this.car.mesh.rotation.y -= this.car.rotationSpeed;
           
-          if (this.keysReleased['e']) 
+          if (this.keysReleased['arrowright']) 
               this.car.gearUp();
           
-          if (this.keysReleased['q']) 
+          if (this.keysReleased['arrowleft']) 
               this.car.gearDown();
 
           if (this.keysReleased['r']) 

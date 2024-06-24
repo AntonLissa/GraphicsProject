@@ -1,8 +1,10 @@
 
+import * as THREE from "three";
 import Car from './Car.js';
 import Controls from './Controls.js';
 import Physics from './Physics.js';
 import Engine from './Engine.js';
+import Track from './Track.js';
 
 class Game {
     constructor() {
@@ -26,6 +28,7 @@ class Game {
 
         this.lastTime = 0;
         Physics.init();
+        this.scene.add(new Track().getTrack());
 
         window.addEventListener('resize', this.onWindowResize.bind(this));
         this.animate();
@@ -36,13 +39,15 @@ class Game {
         this.scene.add(ambientLight);
 
         const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        directionalLight.position.set(10, 10, 10);
+        directionalLight.position.set(10, 100, 10);
         this.scene.add(directionalLight);
     }
 
     addGrid() {
         const gridHelper = new THREE.GridHelper(1000, 100, 0x0000ff, 0x808080); // dimensione, divisioni, colore centro, colore linee
         this.scene.add(gridHelper);
+        const axesHelper = new THREE.AxesHelper(5000);
+        this.scene.add(axesHelper);
     }
 
     onWindowResize() {
@@ -61,7 +66,7 @@ class Game {
         if (this.car.mesh) {
             this.controls.update();
 
-            const relativeCameraOffset = new THREE.Vector3(0, 5, -5);
+            const relativeCameraOffset = new THREE.Vector3(0, 4, -4);
             const cameraOffset = relativeCameraOffset.applyMatrix4(this.car.mesh.matrixWorld);
 
             this.camera.position.lerp(cameraOffset, 0.1);
@@ -77,7 +82,7 @@ class Game {
 
         // Aggiorna la velocità, gli RPM e la marcia nella pagina
         if (speedElement && rpmElement && gearElement) {
-            speedElement.textContent = `${Math.round(this.car.speed * 3.6)} km/h`; // Converti m/s a km/h
+            speedElement.textContent = `${Math.round(this.car.velocityLocal.z * 3.6)} km/h`; // Converti m/s a km/h
             const rpmValue = Math.round(this.car.engine.getCurrentRpm());
             rpmElement.textContent = `${rpmValue}`; // Valore approssimativo per RPM
             gearElement.textContent = `${this.car.gear + 1}`;

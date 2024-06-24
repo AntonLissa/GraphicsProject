@@ -1,12 +1,13 @@
-import * as THREE from 'three';
 
+import {Vector3, MathUtils} from "three";
+import Car from "./Car";
 class Physics {
     static init() {
-        Physics.dragCoeff = 0.4;
-        Physics.rollCoeff = 0.05;
+        // Imposta le proprietà statiche iniziali della classe
+        Physics.dragCoeff = 1;
+        Physics.rollCoeff = 10;
         Physics.dT = 0;
-        Physics.gravity = 9.8;  // Accelerazione di gravità
-        Physics.tireGrip = 1.0;  // Coefficiente di attrito delle gomme
+        Physics.gravity = 9.8;
     }
 
     static setDeltaTime(dt) {
@@ -14,125 +15,141 @@ class Physics {
     }
 
     static getFdrag(v) {
-        return Physics.dragCoeff * v.lengthSq();
+        return Physics.dragCoeff * v * v;
     }
 
-    static getFroll(mass, previousAcc) {
-        const car_length = 5;
-        const com_height = 0.5;
-        const Wf = 0.5 * mass * Physics.gravity - (com_height / car_length) * mass * previousAcc.length();
-        const Wr = 0.5 * mass * Physics.gravity + (com_height / car_length) * mass * previousAcc.length();
-        return Physics.rollCoeff * 2 * (Wf + Wr);
+    static getFroll(car) {
+        if(car.speed.z == 0) return 0;
+        const Wf =  Physics.getWheelWeight(-1, car); // weight front wheel
+        const Wr =  Physics.getWheelWeight(1, car);
+        //console.log('front wheel mass: ', Wf, ' back wheel mass :', Wr);
+        return Physics.rollCoeff * 2 * (Wf + Wr) ; // total friction of all wheels
     }
 
-    static getCentrifugalForce(mass, velocity, radius) {
-        return (mass * velocity.lengthSq()) / radius;
-    }
-
-    static getMaxLateralForce(mass) {
-        return Physics.tireGrip * mass * Physics.gravity;
-    }
-
-    static getSlipAngle(mass, velocity, turnRadius) {
-        const centrifugalForce = Physics.getCentrifugalForce(mass, velocity, turnRadius);
-        const maxLateralForce = Physics.getMaxLateralForce(mass);
+    static getAcceleration(enginePower, car) {
         
-        if (centrifugalForce > maxLateralForce) {
-            return Math.atan(centrifugalForce / maxLateralForce);
-        } else {
-            return 0;
-        }
+        let Froll = Physics.getFroll(car);
+        let Fdrag = Physics.getFdrag(car.speed.z); 
+
+        
+        const gripF =  Physics.getWheelWeight(-1, car)*car.grip;
+        const gripR =  Physics.getWheelWeight(1, car)*car.grip;
+
+        // Resulting velocity of the wheels as result of the yaw rate of the car body.
+        // v = yawrate * r where r is distance from axle to CG and yawRate (angular velocity) in rad/s.
+        var yawSpeedFront = car.length/2 * this.yawRate;
+        var yawSpeedRear = -car.length/2 * this.yawRate;
+
+        // Calculate slip angles for front and rear wheels (a.k.a. alpha)
+        var slipAngleFront = Math.atan2(car.speed.x + yawSpeedFront, Math.abs(car.speed.z)) - GMath.sign(car.speed.z) * car.steeringAngle;
+        var slipAngleRear  = Math.atan2(car.speed.x + yawSpeedRear,  Math.abs(car.speed.z));
+
+        var frictionForceFront_cx = GMath.clamp(-5 * slipAngleFront, -gripF, gripF) * Physics.getWheelWeight(-1, car);
+        var frictionForceRear_cx = GMath.clamp(-5 * slipAngleRear, -gripR, gripR) * Physics.getWheelWeight(1, car);
+
+        var dragForce_cz = -Physics.rollCoeff * 2 * car.speed.z - Physics.dragCoeff * car.speed.z * Math.abs(car.speed.z);
+        var dragForce_cx = -Physics.rollCoeff * 2 * car.speed.x - Physics.dragCoeff * car.speed.x * Math.abs(car.speed.x);
+    
+    
+
+    
+
+
+        const totalForceZ = enginePower - Froll - Fdrag - car.mass*Math.sin(car.mesh.rotation.x)*Physics.gravity;
+        const accZ = totalForceZ / car.mass / car.wheelRadius;
+
+
+        return new Vector3(0, 0, accZ).multiplyScalar(Physics.dT);  // quando accelero con una coppia bassa torna una accelerazione negativa
     }
 
-    static getAcceleration(enginePower, velocity, mass, prevAcc, wheelRad, turnRadius = null, position, orientation) {
-        let Froll = Physics.getFroll(mass, prevAcc);
-        let Fdrag = Physics.getFdrag(velocity);
 
-        // Calculate accelerations in local car coordinates
-        let accX = (enginePower - Froll - Fdrag) / mass * Physics.dT;
-        let accY = 0;
-        let accZ = -Physics.gravity * Physics.dT;
+    static doPhysics(enginePower, car){
 
-        // Adjust for ground contact
-        if (position.y <= 0) {
-            accZ = 0;
-        }
+    var velocity_cz = car.velocityLocal.z
+    var velocity_cx = car.velocityLocal.x
 
-        let slipAngleFL = 0, slipAngleFR = 0, slipAngleRL = 0, slipAngleRR = 0;
-        let averageSlipAngle = 0;
+    const Wf =  Physics.getWheelWeight(-1, car); // weight front wheel
+    const Wr =  Physics.getWheelWeight(1, car);
+    // Resulting velocity of the wheels as result of the yaw rate of the car body.
+    // v = yawrate * r where r is distance from axle to CG and yawRate (angular velocity) in rad/s.
+    var yawSpeedFront = car.length/2 * car.yawRate;
+    var yawSpeedRear = - car.length/2 * car.yawRate;
 
-        if (turnRadius) {
-            const centrifugalForce = Physics.getCentrifugalForce(mass, velocity, turnRadius);
-            const maxLateralForce = Physics.getMaxLateralForce(mass);
-            if (centrifugalForce > maxLateralForce) {
-                accY = (centrifugalForce - maxLateralForce) / mass * Physics.dT;
+    // Calculate slip angles for front and rear wheels (a.k.a. alpha)
+    var slipAngleFront = Math.atan2(velocity_cx + yawSpeedFront, Math.abs(velocity_cz)) - Math.sign(velocity_cz) * car.steeringAngle;
+    var slipAngleRear  = Math.atan2(velocity_cx + yawSpeedRear,  Math.abs(velocity_cz));
 
-                // Calcola gli angoli di slittamento per le quattro ruote
-                slipAngleFL = Physics.getSlipAngle(mass, velocity, turnRadius);
-                slipAngleFR = Physics.getSlipAngle(mass, velocity, turnRadius);
-                slipAngleRL = Physics.getSlipAngle(mass, velocity, turnRadius);
-                slipAngleRR = Physics.getSlipAngle(mass, velocity, turnRadius);
+    var frictionForceFront_cx = MathUtils.clamp(-car.corneringStiffness * slipAngleFront, -car.grip, car.grip) * Wf;
+    var frictionForceRear_cx = MathUtils.clamp(-car.corneringStiffness * slipAngleRear, -car.grip, car.grip) * Wr;
+    
 
-                // Calcola l'angolo medio di slittamento
-                averageSlipAngle = (slipAngleFL + slipAngleFR + slipAngleRL + slipAngleRR) / 4;
-            }
-        }
+    var dragForce_cz = -Physics.rollCoeff * 2 * velocity_cz - Physics.dragCoeff * velocity_cz * Math.abs(velocity_cz);
+    var dragForce_cx = -Physics.rollCoeff  * 2 * velocity_cx - Physics.dragCoeff * velocity_cx * Math.abs(velocity_cx);
 
-        // Adjust acceleration for the orientation of the car
-        const accVector = new THREE.Vector3(accX, accY, accZ);
-        accVector.applyQuaternion(orientation);
 
-        // Return acceleration vector and slip angles
-        return {
-            acceleration: accVector,
-            orientation: averageSlipAngle,
-            slipAngles: {
-                frontLeft: slipAngleFL,
-                frontRight: slipAngleFR,
-                rearLeft: slipAngleRL,
-                rearRight: slipAngleRR,
-            }
-        };
+    // total force in car coordinates
+	var totalForce_cz = dragForce_cz + enginePower;
+	var totalForce_cx = dragForce_cx  + Math.cos(car.steeringAngle) * frictionForceFront_cx + frictionForceRear_cx;
+
+    const Fcent = car.mass*velocity_cz*velocity_cz/(car.length/Math.sin(car.steeringAngle))
+    
+    /*
+    if ((Math.abs(Fcent) > Math.abs(totalForce_cx))){
+    const pos = car.mesh.position.clone();
+     car.skid.addSkidMark(pos.clone().add(new Vector3(0.5, 0, 0.5)),  new Vector3(0, 0, -1).applyQuaternion(car.mesh.quaternion.clone()));
+     car.skid.addSkidMark(pos.clone().add(new Vector3(-0.5, 0, 0.5)),  new Vector3(0, 0, -1).applyQuaternion(car.mesh.quaternion.clone()));
+     car.skid.addSkidMark(pos.clone().add(new Vector3(0.5, 0, -0.5)),  new Vector3(0, 0, -1).applyQuaternion(car.mesh.quaternion.clone()));
+     car.skid.addSkidMark(pos.clone().add(new Vector3(-0.5, 0, -0.5)),  new Vector3(0, 0, -1).applyQuaternion(car.mesh.quaternion.clone()));
+    }
+    
+*/
+	// acceleration along car axes
+	var accel_cz = totalForce_cz / car.mass;  // forward/reverse accel
+	var accel_cx = totalForce_cx / car.mass;  // sideways accel
+
+    /*accel_cz = cs * accel_cz - sn * accel_cx;
+	accel_cx = sn * accel_cz + cs * accel_cx;*/
+    var accel = new Vector3(accel_cx, 0, accel_cz).applyQuaternion(car.mesh.quaternion.clone())
+    //console.log('accel', accel)
+
+
+	// calculate rotational forces
+	var angularTorque = frictionForceFront_cx  * car.length/2 - frictionForceRear_cx * car.length/2;
+
+    
+    if( Math.abs(car.speed.length()) < 1 && !car.accelerating )
+    {
+      car.speed.x = car.speed.z  = 0;
+      angularTorque = car.yawRate = 0;
     }
 
-    static getResultantAcceleration(acceleration) {
-        return acceleration.length();
+	var angularAccel = angularTorque / car.mass;
+
+	car.yawRate += angularAccel * Physics.dT;
+	car.mesh.rotation.y += car.yawRate * Physics.dT;
+
+    return accel.multiplyScalar(Physics.dT); 
+
     }
 
-    static updateWheelRotation(wheel, velocity, slipAngle) {
-        wheel.rotation += velocity.length() * Physics.dT;
-        wheel.slipAngle = slipAngle;
+
+    static getCentrifugalForce(car){
+        
+        let turning_radius = car.length / Math.sin(car.steeringAngle)
+        const Fc = (car.mass * car.speed.z*car.speed.z) / turning_radius
+        return Fc;
     }
 
-    static applySkidMarks(wheel, slipAngle) {
-        const threshold = 0.1;  // Define a threshold for skid marks
-        if (Math.abs(slipAngle) > threshold) {
-            console.log('Skid marks applied!');
-        }
+    static getWheelWeight(coeff, car){
+        
+        const car_length = car.length;
+        const com_heigth = car.com_height;
+        const previousAcc = car.acceleration.clone().applyQuaternion(car.mesh.quaternion.clone().conjugate()).z // local acceleration
+        return 0.5*car.mass*9.8 + coeff * (com_heigth/car_length)*car.mass*previousAcc;
     }
 
-    static simulateFreeFall(car, dt) {
-        car.velocity.y += Physics.gravity * dt;
-        car.position.y += car.velocity.y * dt;
-    }
 
-    static simulateCurve(car, turnRadius) {
-        const slipAngleFL = Physics.getSlipAngle(car.mass, car.velocity, turnRadius);
-        const slipAngleFR = Physics.getSlipAngle(car.mass, car.velocity, turnRadius);
-        const slipAngleRL = Physics.getSlipAngle(car.mass, car.velocity, turnRadius);
-        const slipAngleRR = Physics.getSlipAngle(car.mass, car.velocity, turnRadius);
-
-        Physics.updateWheelRotation(car.frontLeftWheel, car.velocity, slipAngleFL);
-        Physics.updateWheelRotation(car.frontRightWheel, car.velocity, slipAngleFR);
-        Physics.updateWheelRotation(car.rearLeftWheel, car.velocity, slipAngleRL);
-        Physics.updateWheelRotation(car.rearRightWheel, car.velocity, slipAngleRR);
-
-        Physics.applySkidMarks(car.frontLeftWheel, slipAngleFL);
-        Physics.applySkidMarks(car.frontRightWheel, slipAngleFR);
-        Physics.applySkidMarks(car.rearLeftWheel, slipAngleRL);
-        Physics.applySkidMarks(car.rearRightWheel, slipAngleRR);
-    }
 }
 
-export default Physics;
 
+export default Physics;
