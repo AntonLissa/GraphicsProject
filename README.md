@@ -10,6 +10,7 @@ First, select your track, then use the following controls:
 - **WASD**: Movement
 - **Left Arrow**: Shift down a gear
 - **Right Arrow**: Shift up a gear
+- **C**: first/third person
 
 ### Joystick Controls
 - **R2**: Accelerate
