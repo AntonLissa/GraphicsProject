@@ -61,7 +61,7 @@ class Physics {
         var velocity_cx = car.velocityLocal.x
 
         // low speed turning
-        if(Math.abs(velocity_cz)*3.6 < 50 && !car.sliding){
+        if(Math.abs(velocity_cz)*3.6 < 100 && !car.sliding){
             //console.log('debug')
             return Physics.getLowSpeedAcceleration(enginePower, car)
         }

@@ -23,7 +23,7 @@ class Car {
       this.angular_velocity = 0;
       this.steeringAngle = 0;
       this.yawRate = 0;
-      this.grip = 15
+      this.grip = 20
       this.corneringStiffness = 30;
       this.accelerating = false;
       this.velocityLocal = new THREE.Vector3(0,0,0);

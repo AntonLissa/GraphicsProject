@@ -247,7 +247,7 @@ class Game {
         this.scene.add(plane);
 
         const shadowHelper = new THREE.CameraHelper(directionalLight.shadow.camera);
-        this.scene.add(shadowHelper);   
+        //this.scene.add(shadowHelper);   
       }
 
 
