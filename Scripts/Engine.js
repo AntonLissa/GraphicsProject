@@ -1,47 +1,64 @@
+import EngineSound from "./EngineSound.js";
 class Engine {
     constructor(rpm, torqueCurves) {
         this.minRpm = rpm[0];
         this.maxRpm = rpm[1];
         this.torqueCurves = torqueCurves;
         this.currentRpm = this.minRpm;
+        this.over80 = false;
+        this.sound = new EngineSound(50, 700)
+        this.sound.start(this.getSoundFrequency(this.minRpm))
+        this.rpm = this.minRpm
     }
 
-    // Metodo per ottenere la coppia dati gli RPM con diminuzione oltre l'80% dei max RPM
-    getTorque(speed, gearRatio, finalDriveRatio, diameter) {
+
+    getSoundFrequency(){
+        return this.rpm * (this.sound.maxFrequency - this.sound.minFrequency) / this.maxRpm + this.sound.minFrequency;
+    }
+
+    updateSound(){
+        this.sound.updateEngineSound(this.getSoundFrequency())
+    }
+
+    updateRpm(speed, gearRatio, finalDriveRatio, diameter){
+        this.rpm = this.getRpmFromSpeed(speed, gearRatio, finalDriveRatio, diameter); // real rpm
+        this.updateSound()
+    }
+
+
+    
+    getTorque() {
         //.log('data', speed, gear, gearRatio, finalDriveRatio, diameter)
-        const rpm = this.getRpmFromSpeed(speed, gearRatio, finalDriveRatio, diameter); // real rpm
-
-        if(speed > 0){
-        this.currentRpm = rpm; //visible rpm
-        }
-
+        //athis.updateRpm()
         const minTorque = this.torqueCurves[0];
         const maxTorque = this.torqueCurves[1];
 
-        if (rpm < this.minRpm) 
+        if (this.rpm < this.minRpm) 
             return minTorque;
 
-        if (rpm >= this.maxRpm){
-            return -(rpm-this.maxRpm)/4; // freno motore?
+        if (this.rpm > this.maxRpm){
+            return -(this.rpm-this.maxRpm)/4; // freno motore?
         }
     
-        // Calcola l'80% dei max RPM
+        // after 80% max rpm the torque decreases
         const eightyPercentMaxRpm = 0.8 * this.maxRpm; 
     
-        if (rpm <= eightyPercentMaxRpm) {
-            // Non siamo oltre l'80% dei max RPM, quindi usiamo la curva di coppia normale
+        if (this.rpm <= eightyPercentMaxRpm) {
+            // below 80% 
             //console.log('interp',this.interpolateTorque(rpm, minTorque, maxTorque), rpm);
-            const torque = this.interpolateTorque(rpm, minTorque, maxTorque);
+            this.over80 = false
+            const torque = this.interpolateTorque(this.rpm, minTorque, maxTorque);
             return torque ;
         } else {
-            // Siamo oltre l'80% dei max RPM, quindi diminuiamo gradualmente la coppia
-            const reductionFactor = (rpm - eightyPercentMaxRpm) / (this.maxRpm - eightyPercentMaxRpm);
+            // above 80%, torque reduction
+            this.over80 = true
+            const reductionFactor = (this.rpm - eightyPercentMaxRpm) / (this.maxRpm - eightyPercentMaxRpm);
             const reducedTorque = Math.max(minTorque, minTorque + (maxTorque - minTorque) * (1 - reductionFactor));
             return reducedTorque;
         }
     }
 
-    // Metodo per interpolare la coppia in base agli RPM
+    // get torque given rpm
     interpolateTorque(rpm, minTorque, maxTorque) {
         const torqueRange = maxTorque - minTorque;
         const rpmRange = this.maxRpm - this.minRpm;
@@ -49,30 +66,19 @@ class Engine {
         return minTorque + torqueRange * normalizedRpm;
     }
 
-    updateRpm(carSpeed, gearRatio, finalDriveRatio, wheelDiameter){
-        this.currentRpm = this.getRpmFromSpeed(carSpeed, gearRatio, finalDriveRatio, wheelDiameter);
-    }
 
-    // Metodo per calcolare gli RPM dati la velocità del veicolo
+
+    // get rpm given speed
     getRpmFromSpeed(carSpeed, gearRatio, finalDriveRatio, wheelDiameter) {
-        const speed = Math.abs(carSpeed);
-        const wheelCircumference = Math.PI * wheelDiameter; // Circonferenza della ruota in metri
-        const speedInMetersPerMinute = speed * 60; // Conversione da m/s a m/min
-        if (speedInMetersPerMinute === 0) {
-            return this.minRpm;
-        }
+        const wheelCircumference = Math.PI * wheelDiameter; 
+        const speedInMetersPerMinute = carSpeed * 60; 
         const rpm = Math.round((speedInMetersPerMinute * gearRatio * finalDriveRatio) / wheelCircumference);
-
-        /*if (rpm > this.maxRpm) {
-            return this.maxRpm;
-        }*/
-        //console.log('rpm', rpm, speedInMetersPerMinute, finalDriveRatio, wheelCircumference);
-            // Verifichiamo se gli RPM sono un numero valido
+        if (typeof rpm !== 'number' || isNaN(rpm)) return this.minRpm
         return Math.max(this.minRpm, rpm);
     }
 
     getCurrentRpm(){
-        return this.currentRpm;
+        return this.rpm;
     }
 
     increaseRpm(rate) {
