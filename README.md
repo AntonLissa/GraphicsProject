@@ -1,19 +1,23 @@
-# F1 game in three.js
-This game challenges players to complete a f1 circuit in the shortest time possible. Be carefull to not go out of the road or your time will be penalized.
+# F1 Game in Three.js
 
-## How to play
-First of all select your track, then:
--Keyboard controls
--- WASD: for movements
--- Left arrow: shift down the gear
--- Right arrow: shift up the gear
+This game challenges players to complete an F1 circuit in the shortest time possible. Be careful not to go off the road, or your time will be penalized.
 
--Joystick controls
---R2: accelerate
---L2: break/reverse
---L3: turn left/right
---R1: shift up gear
---L1: shift down gear
+## How to Play
 
-The realization of the physics for this game was made possible by: https://www.asawicki.info/Mirror/Car%20Physics%20for%20Games/Car%20Physics%20for%20Games.html.
-The high-speed cornering code was taken and adapted from: https://github.com/spacejack/carphysics2d
+First, select your track, then use the following controls:
+
+### Keyboard Controls
+- **WASD**: Movement
+- **Left Arrow**: Shift down a gear
+- **Right Arrow**: Shift up a gear
+
+### Joystick Controls
+- **R2**: Accelerate
+- **L2**: Brake/Reverse
+- **L3**: Turn left/right
+- **R1**: Shift up a gear
+- **L1**: Shift down a gear
+
+The realization of the physics for this game was made possible by: [Car Physics for Games](https://www.asawicki.info/Mirror/Car%20Physics%20for%20Games/Car%20Physics%20for%20Games.html).
+
+The high-speed cornering code was taken and adapted from: [Car Physics 2D](https://github.com/spacejack/carphysics2d).
