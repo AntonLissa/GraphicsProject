@@ -2,6 +2,8 @@
 
 This game challenges players to complete an F1 circuit in the shortest time possible. Be careful not to go off the road, or your time will be penalized.
 
+
+<img src = "screen_game.jpg" width=500/>
 ## How to Play
 
 First, select your track, then use the following controls:
