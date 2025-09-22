@@ -4,6 +4,8 @@ This game challenges players to complete an F1 circuit in the shortest time poss
 
 
 <img src = "screen_game.jpg" width=500/>
+
+
 ## How to Play
 
 First, select your track, then use the following controls:
